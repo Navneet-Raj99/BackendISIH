@@ -9,7 +9,7 @@ const io = socketIO(server);
 require('dotenv').config();
 
 
-const{mqttUsername1,mqttPassword1,mqttBroker1 }= process.env
+const{mqttUsername1,mqttPassword1,mqttBroker1}= process.env
 
 console.log(mqttBroker1)
 
