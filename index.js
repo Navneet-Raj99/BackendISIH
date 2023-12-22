@@ -7,7 +7,16 @@ const mongoose = require('mongoose');
 const authenticateUser = require('./middleware/middle');
 connectToMongo();
 
+var cors = require('cors')
+
+
+
+// const { Fernet } = require('cryptography');
+const crypto = require('crypto');
+
+
 const app = express();
+app.use(cors())
 const server = http.createServer(app);
 const io = socketIO(server);
 require('dotenv').config();
@@ -61,10 +70,12 @@ app.get('/', (req, res) => {
 
 
 
+
 app.post('/login', (req, res) => {
 
     try {
         const { username, password } = req.body;
+        console.log(username,password)
         const client = mqtt.connect(mqttBroker1, {
 
             username: username,
@@ -127,7 +138,7 @@ app.post('/specifiedData', authenticateUser, async (req, res) => {
     const { userId } = req.body;
     const dataCollection = mongoose.connection.db.collection('hiveMQCollection');
 
-    findAllData(userId);
+
 
     const findAllData = async (userId) => {
         try {
@@ -135,7 +146,11 @@ app.post('/specifiedData', authenticateUser, async (req, res) => {
             const allData = await dataCollection.find({ user_id: userId }).toArray();
 
             // Print or process the retrieved data
-            console.log("All data:", allData);
+            console.log("All data:", allData[0]?._id);
+
+
+            let finalData = decryptdATA(allData[0]?.data, "b70b4dd780c2100fe9bfbdc71577ff64");
+            res.json({ "data": finalData })
         } catch (error) {
             console.error("Error finding data:", error.message);
         } finally {
@@ -143,6 +158,27 @@ app.post('/specifiedData', authenticateUser, async (req, res) => {
             mongoose.connection.close();
         }
     };
+
+    const decryptdATA = (singleData, key) => {
+        console.log("entered")
+
+        const decryptionKey = Buffer.from(key, 'hex');  // Use the same key generated in Python
+        const decipher = crypto.createDecipheriv('aes-128-ecb', decryptionKey, Buffer.alloc(0));
+
+        let decryptedData = decipher.update(Buffer.from(singleData, 'base64'), 'binary', 'utf8');
+        decryptedData += decipher.final('utf8');
+
+        console.log(decryptedData);
+        // // Unpad the decrypted data
+        // const lastCharCode = decryptedData.charCodeAt(decryptedData.length - 1);
+        // decryptedData = decryptedData.slice(0, -lastCharCode);
+
+
+        return decryptedData;
+    }
+
+
+    findAllData(userId);
 
 
 })
@@ -158,7 +194,7 @@ app.post('/api/receiveData', (req, res) => {
 
 
 // Start the server
-const PORT = 3000;
+const PORT = 8000;
 server.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
