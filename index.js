@@ -4,6 +4,7 @@ const mqtt = require('mqtt');
 const socketIO = require('socket.io');
 const connectToMongo = require('./db')
 const mongoose = require('mongoose');
+const authenticateUser = require('./middleware/middle');
 connectToMongo();
 
 const app = express();
@@ -12,7 +13,10 @@ const io = socketIO(server);
 require('dotenv').config();
 app.use(express.json());
 
-const { mqttUsername1, mqttPassword1, mqttBroker1 } = process.env
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
+const { mqttUsername1, mqttPassword1, mqttBroker1, secretKey } = process.env
 
 console.log(mqttBroker1)
 
@@ -58,40 +62,68 @@ app.get('/', (req, res) => {
 
 
 app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    const client = mqtt.connect(mqttBroker1, {
 
-        username: username,
-        password: password
-    });
-    client.on('connect', function () {
-        console.log('Connected to MQTT broker')
-        io.on('connection', (socket) => {
-            console.log('Client connected', socket?.id);
-            socket.on('disconnect', () => {
-                console.log('Client disconnected');
-            });
+    try {
+        const { username, password } = req.body;
+        const client = mqtt.connect(mqttBroker1, {
+
+            username: username,
+            password: password
         });
-        res.json({
-            "Connection": true,
-            "AUTH_TOKEN": "qwertyuiop"
-        })
-        client.on('message', (topic, message) => {
-            if (topic === mqttTopic) {
-                const data = message.toString();
-                console.log('Received MQTT message:', data);
-                io.emit('mqtt_message', data);
+        client.on('connect', async function () {
+            try {
+                console.log('Connected to MQTT broker')
+
+                const token = jwt.sign({ username: username }, secretKey, { expiresIn: '1h' });
+
+                io.on('connection', (socket) => {
+                    console.log('Client connected', socket?.id);
+                    socket.on('disconnect', () => {
+                        console.log('Client disconnected');
+                    });
+                });
+                res.json({
+                    "Connection": true,
+                    "AUTH_TOKEN": token
+                })
+                client.on('message', (topic, message) => {
+                    if (topic === mqttTopic) {
+                        const data = message.toString();
+                        console.log('Received MQTT message:', data);
+                        io.emit('mqtt_message', data);
+                    }
+                });
+
+            } catch (error) {
+                console.log(error)
             }
+
         });
-        client.end();
-    });
+        client.on('error', (error) => {
+            try {
+                // console.error('MQTT connection error:', error);
+                return res.status(401).json({
+                    "Connection": false,
+                    "message": "Unauthorized Access - MQTT connection failed"
+                });
+                return;
+
+            } catch (error) {
+
+            }
+
+        });
 
 
+    } catch (error) {
+        // console.log(error);
+
+    }
 
 
 });
 
-app.post('/specifiedData', async (req, res) => {
+app.post('/specifiedData', authenticateUser, async (req, res) => {
     const { userId } = req.body;
     const dataCollection = mongoose.connection.db.collection('hiveMQCollection');
 
