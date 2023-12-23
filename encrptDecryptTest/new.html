@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple HTML Code</title>
+    <style>
+      body {
+        /* margin: 0;
+            padding: 0; */
+        font-family: Arial, sans-serif;
+        justify-content: center;
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .internal2 {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .box {
+        width: 150px;
+        height: calc(40vh);
+        background-color: white;
+        border: 2px solid black;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      #map {
+        width: 50vw;
+        height: 50vh;
+        border: 0;
+      }
+      .image {
+        height: 90px;
+        width: 90px;
+      }
+
+      .textB {
+        font-size: 20px;
+        color: black;
+      }
+    </style>
+  </head>
+  <body>
+      <iframe
+      id="map"
+      src="https://gprs-component.firebaseapp.com/"
+      frameborder="0"
+      allowfullscreen
+    ></iframe>
+  
+    <div class="internal2">
+      <div class="box">
+        <img
+          class="image"
+          src="../static/temperature.png"
+          alt="Temperature Image"
+        />
+        <p class="textB" id="temp"></p>
+      </div>
+      <div class="box">
+        <img class="image" src="../static/battery.png" alt="Battery Image" />
+        <p class="textB" id="battery"></p>
+      </div>
+      <div class="box">
+        <img class="image" src="../static/speed.png" alt="Speed Image" />
+        <p class="textB" id="speed"></p>
+      </div>
+      <div class="box">
+        <img class="image" src="../static/fuel.jpg" alt="Fuel Image" />
+        <p class="textB" id="fuel"></p>
+      </div>
+      <div class="box">
+        <img class="image" id="encoder" src="../static/steering.png" alt="Steering Image" />
+        <p class="textB" id="rotary"></p>
+      </div>
+      <div class="box">
+        <img class="image" src="../static/pressure.png" alt="Pressure Image" />
+        <p class="textB" id="lat"></p>
+      </div>
+        <div class="box">
+        <img class="image" src="../static/steering.png" alt="Engine RPM" />
+        <p class="textB" id="enginerpm"></p>
+      </div>
+      <div class="box">
+        <img class="image" src="../static/pressure.png" alt="Engine Payload" />
+        <p class="textB" id="enginepayload"></p>
+      </div>
+      <div class="box">
+        <img class="image" src="../static/steering.png" alt="vehicleload Image" />
+        <p class="textB" id="vehicleload"></p>
+      </div>
+      <div class="box">
+        <img class="image" src="../static/pressure.png" alt="smoke Image" />
+        <p class="textB" id="smoke"></p>
+      </div>
+    </div>
+  </body>
+  
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        socket.on('update_data', function(data) {
+        
+        const pairs = data["data"].split(',');
+
+// Create an object to store the key-value pairs
+const keyValuePairs = {};
+
+// Iterate through the array of pairs and populate the object
+pairs.forEach(pair => {
+  const [key, value] = pair.split(':');
+  keyValuePairs[key] = value;
+});
+        
+        
+            document.getElementById('fuel').textContent = keyValuePairs["FuelLevel"]+" %";
+             document.getElementById("battery").textContent = keyValuePairs["Voltage"]+" Volt";
+      document.getElementById("rotary").textContent = keyValuePairs["encoder"] + " degree";
+      if(keyValuePairs["encoder"]==1){
+        var myImage = document.getElementById("encoder");
+        myDiv.style.backgroundColor = "red";
+
+        // Change the image source
+        // myImage.src = "new-image.jpg";
+      }
+      document.getElementById("temp").textContent = keyValuePairs["temperature"] + " degreeC";
+      document.getElementById("speed").textContent = keyValuePairs["Speed"] + " km/hr";
+      document.getElementById("lat").textContent = keyValuePairs["lat"] + "," + keyValuePairs["long"];
+         document.getElementById("enginerpm").textContent = keyValuePairs["RPM"] + "rpm";
+      document.getElementById("enginepayload").textContent = keyValuePairs["payload"];
+      document.getElementById("vehicleload").textContent = keyValuePairs["Weight[g]"] + " gm";
+      document.getElementById("smoke").textContent = keyValuePairs["smoke"] + " ppm";
+         
+        });
+    </script>
+  
+</html>
+
+

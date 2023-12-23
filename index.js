@@ -25,7 +25,7 @@ app.use(express.json());
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-const { mqttUsername1, mqttPassword1, mqttBroker1, secretKey } = process.env
+const { mqttUsername1, mqttPassword1, mqttBroker1, secretKey, encrptionPassword } = process.env
 
 console.log(mqttBroker1)
 
@@ -53,6 +53,16 @@ mqttClient.on('error', (error) => {
     console.error('MQTT error:', error);
 });
 
+
+mqttClient.on('message', (topic, message) => {
+    console.log("hello");
+    if (topic === mqttTopic) {
+        const data = message.toString();
+        console.log('Received MQTT message:', data);
+        io.emit('mqtt_message', data);
+    }
+});
+
 // Handle MQTT broker disconnection
 mqttClient.on('close', () => {
     console.log('Disconnected from MQTT broker');
@@ -75,7 +85,7 @@ app.post('/login', (req, res) => {
 
     try {
         const { username, password } = req.body;
-        console.log(username,password)
+        console.log(username, password)
         const client = mqtt.connect(mqttBroker1, {
 
             username: username,
@@ -97,13 +107,7 @@ app.post('/login', (req, res) => {
                     "Connection": true,
                     "AUTH_TOKEN": token
                 })
-                client.on('message', (topic, message) => {
-                    if (topic === mqttTopic) {
-                        const data = message.toString();
-                        console.log('Received MQTT message:', data);
-                        io.emit('mqtt_message', data);
-                    }
-                });
+
 
             } catch (error) {
                 console.log(error)
@@ -143,19 +147,19 @@ app.post('/specifiedData', authenticateUser, async (req, res) => {
     const findAllData = async (userId) => {
         try {
             // Find all documents in the collection
-            const allData = await dataCollection.find({ user_id: userId }).toArray();
+            const allData = await dataCollection.find({ user_id: userId }).sort({ _id: -1 }).toArray();
 
             // Print or process the retrieved data
             console.log("All data:", allData[0]?._id);
 
 
-            let finalData = decryptdATA(allData[0]?.data, "b70b4dd780c2100fe9bfbdc71577ff64");
+            let finalData = decryptdATA(allData[0]?.data, encrptionPassword);
             res.json({ "data": finalData })
         } catch (error) {
             console.error("Error finding data:", error.message);
         } finally {
             // Close the MongoDB connection
-            mongoose.connection.close();
+            // mongoose.connection.close();
         }
     };
 
