@@ -38,12 +38,12 @@ const mqttPassword = mqttPassword1;
 // Subscribe to the desired MQTT topic
 const mqttTopic = 'dashboard/vehicle'; // Replace with your desired MQTT topic
 const mqttClient = mqtt.connect(mqttBroker, { username: mqttUsername, password: mqttPassword });
-// mqttClient.on('connect', () => {
-//     console.log('Connected to MQTT broker');
+mqttClient.on('connect', () => {
+    console.log('Connected to MQTT broker');
 
-//     // Subscribe to the MQTT topic
-//     mqttClient.subscribe(mqttTopic);
-// });
+    // Subscribe to the MQTT topic
+    mqttClient.subscribe(mqttTopic);
+});
 
 // Listen for incoming MQTT messages
 
@@ -54,12 +54,20 @@ mqttClient.on('error', (error) => {
 });
 
 
+io.on('connection', (socket) => {
+    console.log('Client connected', socket?.id);
+    socket.on('disconnect', () => {
+        console.log('Client disconnected');
+    });
+});
+
 mqttClient.on('message', (topic, message) => {
-    console.log("hello");
+    // console.log("hello");
     if (topic === mqttTopic) {
         const data = message.toString();
-        console.log('Received MQTT message:', data);
+        // console.log('Received MQTT message1:', data);
         io.emit('mqtt_message', data);
+        // console.log("jjjj")
     }
 });
 
@@ -79,7 +87,7 @@ app.get('/', (req, res) => {
 
 
 
-
+let client
 
 app.post('/login', (req, res) => {
 
@@ -96,7 +104,7 @@ app.post('/login', (req, res) => {
                 console.log('Connected to MQTT broker')
 
                 const token = jwt.sign({ username: username }, secretKey, { expiresIn: '1h' });
-
+                client.subscribe(mqttTopic);
                 io.on('connection', (socket) => {
                     console.log('Client connected', socket?.id);
                     socket.on('disconnect', () => {
